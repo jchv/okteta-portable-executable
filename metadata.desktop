@@ -1,0 +1,17 @@
+[Desktop Entry]
+Encoding=UTF-8
+Icon=application-x-executable
+Type=Service
+ServiceTypes=KPluginInfo
+
+Name=Portable Executable structure
+Comment=Structure definition for Windows EXE / Portable Executable (PE) format.
+
+X-KDE-PluginInfo-Author=John Chadwick
+X-KDE-PluginInfo-Email=john@jchw.io
+X-KDE-PluginInfo-Name=Portable Executable
+X-KDE-PluginInfo-Version=1.0
+X-KDE-PluginInfo-Website=https://github.com/jchv/okteta-portable-executable
+X-KDE-PluginInfo-Category=structure/js
+X-KDE-PluginInfo-License=ISC
+X-KDE-PluginInfo-EnabledByDefault=false
