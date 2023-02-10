@@ -1,0 +1,23 @@
+{
+  "name": "portable-executable",
+  "version": "1.0.0",
+  "description": "An implementation of the Windows executable (.exe) / Microsoft Portable Executable format for Okteta's structure view tool, currently _only_ for the headers.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "tsc": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jchv/okteta-portable-executable.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jchv/okteta-portable-executable/issues"
+  },
+  "homepage": "https://github.com/jchv/okteta-portable-executable#readme",
+  "dependencies": {
+    "typescript": "^4.9.5"
+  }
+}

@@ -1,0 +1,11 @@
+{
+    "compilerOptions": {
+        "allowJs": true,
+        "checkJs": true,
+        "strict": true,
+        "watch": true,
+        "module": "None"
+    },
+    "compileOnSave": true,
+    "include": ["okteta.d.ts", "main.ts"]
+}

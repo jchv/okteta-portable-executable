@@ -1,7 +1,6 @@
 # Portable Executable structure for Okteta
 An implementation of the Windows executable (.exe) / Microsoft Portable
-Executable format for Okteta's structure view tool, currently _only_ for
-the headers.
+Executable format for Okteta's structure view tool.
 
 ![Screenshot showing an executable file Okteta with the structure view.](./screenshot.png)
 
@@ -29,41 +28,25 @@ git clone https://github.com/jchv/okteta-portable-executable portable-executable
 - Supports PE32 and PE32+ (64-bit) executable files.
 - Detailed, human readable field names, enumerations, and flags.
 - Automatically locks to offset 0 by default for convenience.
-- Reads all the way through the section headers.
+- Supports digging into data directories:
+  - Exports table
+  - Imports table (partially)
+  - Base Relocations (partially)
+  - Debug information
 
 ## TODO
-Executables with real DOS programs instead of just stubs may fail due to
-Okteta's limit on array lengths. This can probably be fixed in a satisfactory
-way, probably by using `pointer` instead of padding arrays.
+Some of the data directories are still not handled, including:
 
-Currently, this structure definition *only* supports the headers at the
-beginning of the file. It does not support structures below the header.
-These include the following:
-
-- Import/export symbol tables
-- Relocations table
 - Resources
-- CLR/.NET data
-- Debug data
+- CLR descriptors
 
-I would like to enable some basic support for these structures. It's tricky
-because most information in PE executables after the header is dealt with in
-terms of the virtual memory it is mapped to rather than the structure of the
-file. However, a couple of things help us here:
+In addition, due to the lack of support for variable length arrays terminated
+by a sentinel value, there are some limitations when digging into various
+directories that need this:
 
-- Sections MUST be adjacent and contiguous. There can technically be gaps not
-  present in the file, but this is only legal when SectionAlignment is greater
-  than FileAlignment.
+- Only the first import thunk for each DLL is parsed.
+- Only the first base relocation table is parsed.
 
-- These gaps do not, themselves, pose much of an issue: structures can't cross
-  into them because they are not mapped.
-
-It is possible to implement this with Okteta since
-[commit 1b01b7b](https://invent.kde.org/utilities/okteta/-/commit/1b01b7b96e20de9584f693be40e7c0d64966ea53)
-which adds the ability to interpret pointers. We should be able to loop over
-section data to map virtual addresses into file offsets.
-
-Considering all of this, it should be technically possible to support what we
-want. Some stuff may still wind up being tricky (such as dealing with symbol
-names; maybe pointer interpretation can be used to translate indices to
-offsets?)
+Barring a nice hack, it seems likely that we will need to make changes to Okteta
+to get better support here. Both of these arrays can get large enough to make it
+impractical to try to apply hacks using arrays and nesting.
