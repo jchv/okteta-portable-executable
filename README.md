@@ -1,3 +1,5 @@
+[![KDE Store](https://img.shields.io/static/v1?style=fkat&message=KDE%20Store&color=1D99F3&logo=KDE&logoColor=FFFFFF&label=)](https://store.kde.org/p/1985139)
+
 # Portable Executable structure for Okteta
 An implementation of the Windows executable (.exe) / Microsoft Portable
 Executable format for Okteta's structure view tool.
@@ -5,8 +7,11 @@ Executable format for Okteta's structure view tool.
 ![Screenshot showing an executable file Okteta with the structure view.](./screenshot.png)
 
 ## Usage
-You can install this add-on from within Okteta. Use the "Get New Structures..."
-button in the structures settings dialog.
+You can install this add-on from within Okteta via the KDE Store. Use the
+"Get New Structures..." button in the structures settings dialog.
+
+You can also download it from the
+[KDE Store](https://store.kde.org/p/1985139) directly.
 
 If you want to install from source, you can clone this repository into the right
 location and it should be picked up when you restart Okteta.
