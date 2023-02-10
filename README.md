@@ -5,6 +5,9 @@ Executable format for Okteta's structure view tool.
 ![Screenshot showing an executable file Okteta with the structure view.](./screenshot.png)
 
 ## Usage
+You can install this add-on from within Okteta. Use the "Get New Structures..."
+button in the structures settings dialog.
+
 If you want to install from source, you can clone this repository into the right
 location and it should be picked up when you restart Okteta.
 
