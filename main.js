@@ -40,7 +40,42 @@ function init() {
         "PE32": "0x010b",
         "PE32+": "0x020b"
     };
-    var imageFileMachineValues = {
+    var newHeaderSignatureKinds = {
+        "NE": "0x454E",
+        "PE": "0x4550"
+    };
+    var neImageFileHeader = struct({
+        "Major Linker Version": uint8(),
+        "Minor Linker Version": uint8(),
+        "Entry Table Offset": uint16(),
+        "Entry Table Length": uint16(),
+        "File Load CRC": uint32(),
+        "Flags": uint16(),
+        "Auto Data Segment Index": uint16(),
+        "Init Heap Size": uint16(),
+        "Init Stack Size": uint16(),
+        "Entry Point": uint32(),
+        "Init Stack": uint32(),
+        "Segment Count": uint16(),
+        "Module References": uint16(),
+        "Non-resident Names Size": uint16(),
+        "Segment Table Offset": uint16(),
+        "Resource Table Offset": uint16(),
+        "Resident Names Table Offset": uint16(),
+        "Module Reference Table Offset": uint16(),
+        "Import Name Table Offset": uint16(),
+        "Non-resident Names Table Offset": uint32(),
+        "Movable Entrypoint Count": uint16(),
+        "File Alignment Shift Count": uint16(),
+        "Resource Table Entries": uint16(),
+        "Target OS": uint8(),
+        "OS/2 Executable Flags": uint8(),
+        "Return Thunk Offset": uint16(),
+        "Segment Reference Thunk Offset": uint16(),
+        "Min Code Swap": uint16(),
+        "Expected Win Version": array(uint8(), 2)
+    });
+    var peImageFileMachineValues = {
         "Unknown": "0x0000",
         "Target Host": "0x0001",
         "i386": "0x014c",
@@ -77,7 +112,7 @@ function init() {
         "RISC-V 64": "0x5064",
         "RISC-V 128": "0x5128"
     };
-    var imageFileCharacteristicsValues = {
+    var peImageFileCharacteristicsValues = {
         "Relocs Stripped": "0x0001",
         "Executable Image": "0x0002",
         "Line Numbers Stripped": "0x0004",
@@ -94,7 +129,7 @@ function init() {
         "Uniprocessor System Only": "0x4000",
         "Bytes Reversed Hi": "0x8000"
     };
-    var imageSubsystemValues = {
+    var peImageSubsystemValues = {
         "Unknown": "0",
         "Native": "1",
         "Windows GUI": "2",
@@ -111,7 +146,7 @@ function init() {
         "Windows Boot Application": "16",
         "XBox Code Catalog": "17"
     };
-    var imageFileDllCharacteristicsValues = {
+    var peImageFileDllCharacteristicsValues = {
         "High-Entropy Virtual Address Space Aware": "0x0020",
         "Dynamic Base": "0x0040",
         "Force Integrity": "0x0080",
@@ -124,7 +159,7 @@ function init() {
         "Control Flow Guard Supported": "0x4000",
         "Terminal Server Aware": "0x8000"
     };
-    var imageSectionCharacteristicsValues = {
+    var peImageSectionCharacteristicsValues = {
         "No Pad": "0x00000008",
         "Contains Code": "0x00000020",
         "Contains Initialized Data": "0x00000040",
@@ -164,7 +199,7 @@ function init() {
         "Memory Read": "0x40000000",
         "Memory Write": "0x80000000"
     };
-    var imageRelocationTypeValues = {
+    var peImageRelocationTypeValues = {
         "Absolute": "0",
         "High": "1",
         "Low": "2",
@@ -177,21 +212,21 @@ function init() {
         "Machine-specific (9)": "9",
         "Dir64": "10"
     };
-    var imageFileHeader = struct({
-        "Machine": enumeration("ImageFileMachine", uint16(), imageFileMachineValues),
+    var peImageFileHeader = struct({
+        "Machine": enumeration("ImageFileMachine", uint16(), peImageFileMachineValues),
         "Number of Sections": uint16(),
         "TimeDateStamp": uint32(),
         "Pointer To Symbol Table": uint32(),
         "Number of Symbols": uint32(),
         "Size of Optional Header": uint16(),
-        "Characteristics": flags("ImageFileCharacteristics", uint16(), imageFileCharacteristicsValues)
+        "Characteristics": flags("ImageFileCharacteristics", uint16(), peImageFileCharacteristicsValues)
     });
-    var imageDataDirectory = struct({
+    var peImageDataDirectory = struct({
         "Virtual Address": uint32(),
         "Size": uint32()
     });
     // Exports.
-    var imageExportDirectory = struct({
+    var peImageExportDirectory = struct({
         "Characteristics (unused)": uint32(),
         "TimeDateStamp": uint32(),
         "Major Version": uint16(),
@@ -204,77 +239,77 @@ function init() {
         "Address of Names": virtualPointer(uint32(), array(virtualPointer(uint32(), string("ascii")), function () { return this.parent.parent["Number of Names"].value; })),
         "Address of Name Ordinals": virtualPointer(uint32(), array(uint16(), function () { return this.parent.parent["Number of Names"].value; }))
     });
-    var exportDataDirectory = struct({
-        "Virtual Address": optionalVirtualPointer(uint32(), imageExportDirectory),
+    var peExportDataDirectory = struct({
+        "Virtual Address": optionalVirtualPointer(uint32(), peImageExportDirectory),
         "Size": uint32()
     });
     // Imports. Partly unfinished: we can't do sentinel termination on arrays yet?
-    var imageThunk32 = union({
+    var peImageThunk32 = union({
         "Ordinal": uint32(),
         "Name": virtualPointer(uint32(), struct({
             "Hint": uint16(),
             "Name": string("ascii")
         }))
     });
-    var imageImportDescriptor32 = struct({
+    var peImageImportDescriptor32 = struct({
         "Original First Thunk": uint32(),
         "TimeDateStamp": uint32(),
         "Forwarder Chain": uint32(),
         "Name": virtualPointer(uint32(), string("ascii")),
-        "First Thunk": virtualPointer(uint32(), imageThunk32)
+        "First Thunk": virtualPointer(uint32(), peImageThunk32)
     });
-    var importDataDirectory32 = struct({
-        "Virtual Address": optionalVirtualPointer(uint32(), array(imageImportDescriptor32, function () { return this.parent.parent.parent["Size"].value / 20; })),
+    var peImportDataDirectory32 = struct({
+        "Virtual Address": optionalVirtualPointer(uint32(), array(peImageImportDescriptor32, function () { return this.parent.parent.parent["Size"].value / 20; })),
         "Size": uint32()
     });
-    var imageThunk64 = union({
+    var peImageThunk64 = union({
         "Ordinal": uint32(),
         "Name": virtualPointer(uint32(), struct({
             "Hint": uint16(),
             "Name": string("ascii")
         }))
     });
-    var imageImportDescriptor64 = struct({
+    var peImageImportDescriptor64 = struct({
         "Original First Thunk": uint32(),
         "TimeDateStamp": uint32(),
         "Forwarder Chain": uint32(),
         "Name": virtualPointer(uint32(), string("ascii")),
-        "First Thunk": virtualPointer(uint32(), imageThunk64)
+        "First Thunk": virtualPointer(uint32(), peImageThunk64)
     });
-    var importDataDirectory64 = struct({
-        "Virtual Address": optionalVirtualPointer(uint32(), array(imageImportDescriptor64, function () { return this.parent.parent.parent["Size"].value / 20; })),
+    var peImportDataDirectory64 = struct({
+        "Virtual Address": optionalVirtualPointer(uint32(), array(peImageImportDescriptor64, function () { return this.parent.parent.parent["Size"].value / 20; })),
         "Size": uint32()
     });
     // TLS
-    var tlsCharacteristics = {
+    var peTlsCharacteristics = {
         "Scale Index": "0x00000001"
     };
-    var imageTlsDirectoryData32 = struct({
+    var peImageTlsDirectoryData32 = struct({
         "Start Address of Raw Data": uint32(),
         "End Address of Raw Data": uint32(),
         "Address of Index": uint32(),
         "Address of CallBacks": uint32(),
         "Size of Zero Fill": uint32(),
-        "Characteristics": flags("TLS Characteristics", uint32(), tlsCharacteristics)
+        "Characteristics": flags("TLS Characteristics", uint32(), peTlsCharacteristics)
     });
-    var imageTlsDirectory32 = struct({
-        "Virtual Address": optionalVirtualPointer(uint32(), imageTlsDirectoryData32),
+    var peImageTlsDirectory32 = struct({
+        "Virtual Address": optionalVirtualPointer(uint32(), peImageTlsDirectoryData32),
         "Size": uint32()
     });
-    var imageTlsDirectoryData64 = struct({
+    var peImageTlsDirectoryData64 = struct({
         "Start Address of Raw Data": uint64(),
         "End Address of Raw Data": uint64(),
         "Address of Index": uint64(),
         "Address of CallBacks": uint64(),
         "Size of Zero Fill": uint32(),
-        "Characteristics": flags("TLS Characteristics", uint32(), tlsCharacteristics)
+        "Characteristics": flags("TLS Characteristics", uint32(), peTlsCharacteristics)
     });
-    var imageTlsDirectory64 = struct({
-        "Virtual Address": optionalVirtualPointer(uint32(), imageTlsDirectoryData64),
+    var peImageTlsDirectory64 = struct({
+        "Virtual Address": optionalVirtualPointer(uint32(), peImageTlsDirectoryData64),
         "Size": uint32()
     });
     // Debug
-    var debugTypeValues = {
+    var peDebugTypeValues = {
         "Unknown": 0,
         "COFF": 1,
         "CodeView 4.0+": 2,
@@ -284,34 +319,34 @@ function init() {
         "Fixup": 6,
         "Borland": 9
     };
-    var codeViewData = struct({
+    var peCodeViewData = struct({
         "Signature": array(uint8(), 4),
         "GUID": array(uint8(), 16),
         "Age": uint32(),
         "Filename": string("utf-8")
     });
-    var imageDebugDirectoryData = taggedUnion({
+    var peImageDebugDirectoryData = taggedUnion({
         "Characteristics (unused)": uint32(),
         "TimeDateStamp": uint32(),
         "Major Version": uint16(),
         "Minor Version": uint16(),
-        "Type": enumeration("Debug Type", uint32(), debugTypeValues),
+        "Type": enumeration("Debug Type", uint32(), peDebugTypeValues),
         "Size of Data": uint32()
     }, [
-        alternative(function () { return this.Type.value == debugTypeValues["CodeView 4.0+"]; }, {
-            "Address of Raw Data": virtualPointer(uint32(), codeViewData),
+        alternative(function () { return this.Type.value == peDebugTypeValues["CodeView 4.0+"]; }, {
+            "Address of Raw Data": virtualPointer(uint32(), peCodeViewData),
             "Pointer to Raw Data": uint32()
         })
     ], {
         "Address of Raw Data": virtualPointer(uint32(), array(uint8(), function () { return this.parent.parent["Size of Data"].value; })),
         "Pointer to Raw Data": uint32()
     });
-    var imageDebugDirectory = struct({
-        "Virtual Address": optionalVirtualPointer(uint32(), imageDebugDirectoryData),
+    var peImageDebugDirectory = struct({
+        "Virtual Address": optionalVirtualPointer(uint32(), peImageDebugDirectoryData),
         "Size": uint32()
     });
     // Relocs (unfinished, can't do the array length yet)
-    var imageBaseRelocation = struct({
+    var peImageBaseRelocation = struct({
         "Virtual Address": uint32(),
         "Size of Block": uint32(),
         "Relocations": array(struct({
@@ -320,11 +355,11 @@ function init() {
         }), function () { return this.parent["Size of Block"].value / 2 - 4; }),
         "Padding": uint16()
     });
-    var imageRelocDirectory = struct({
-        "Virtual Address": optionalVirtualPointer(uint32(), imageBaseRelocation),
+    var peImageRelocDirectory = struct({
+        "Virtual Address": optionalVirtualPointer(uint32(), peImageBaseRelocation),
         "Size": uint32()
     });
-    var optionalHeader = taggedUnion({
+    var peOptionalHeader = taggedUnion({
         "Magic": enumeration("OptionalHeaderMagic", uint16(), optionalHeaderMagicKinds)
     }, [
         alternative(function () { return this.Magic.value == optionalHeaderMagicKinds["PE32"]; }, {
@@ -349,8 +384,8 @@ function init() {
             "Size of Image": uint32(),
             "Size of Headers": uint32(),
             "CheckSum": uint32(),
-            "Subsystem": enumeration("ImageSubsystem", uint16(), imageSubsystemValues),
-            "Dll Characteristics": flags("ImageFileDllCharacteristics", uint16(), imageFileDllCharacteristicsValues),
+            "Subsystem": enumeration("ImageSubsystem", uint16(), peImageSubsystemValues),
+            "Dll Characteristics": flags("ImageFileDllCharacteristics", uint16(), peImageFileDllCharacteristicsValues),
             "Size of Stack Reserve": uint32(),
             "Size of Stack Commit": uint32(),
             "Size of Heap Reserve": uint32(),
@@ -358,22 +393,22 @@ function init() {
             "Loader Flags": uint32(),
             "Number of Rva And Sizes": uint32(),
             "DataDirectory": struct({
-                "Export": exportDataDirectory,
-                "Import": importDataDirectory32,
-                "Resource": imageDataDirectory,
-                "Exception": imageDataDirectory,
-                "Certificate": imageDataDirectory,
-                "Base Relocations": imageRelocDirectory,
-                "Debug Info": imageDebugDirectory,
-                "Architecture": imageDataDirectory,
-                "Global Pointer": imageDataDirectory,
-                "TLS": imageTlsDirectory32,
-                "Load Config": imageDataDirectory,
-                "Bound Import": imageDataDirectory,
-                "IAT": imageDataDirectory,
-                "Delay Import": imageDataDirectory,
-                "CLR Descriptor": imageDataDirectory,
-                "Reserved": imageDataDirectory
+                "Export": peExportDataDirectory,
+                "Import": peImportDataDirectory32,
+                "Resource": peImageDataDirectory,
+                "Exception": peImageDataDirectory,
+                "Certificate": peImageDataDirectory,
+                "Base Relocations": peImageRelocDirectory,
+                "Debug Info": peImageDebugDirectory,
+                "Architecture": peImageDataDirectory,
+                "Global Pointer": peImageDataDirectory,
+                "TLS": peImageTlsDirectory32,
+                "Load Config": peImageDataDirectory,
+                "Bound Import": peImageDataDirectory,
+                "IAT": peImageDataDirectory,
+                "Delay Import": peImageDataDirectory,
+                "CLR Descriptor": peImageDataDirectory,
+                "Reserved": peImageDataDirectory
             })
         }, "Optional Header PE32"),
         alternative(function () { return this.Magic.value == optionalHeaderMagicKinds["PE32+"]; }, {
@@ -397,8 +432,8 @@ function init() {
             "Size of Image": uint32(),
             "Size of Headers": uint32(),
             "CheckSum": uint32(),
-            "Subsystem": enumeration("ImageSubsystem", uint16(), imageSubsystemValues),
-            "Dll Characteristics": flags("ImageFileDllCharacteristics", uint16(), imageFileDllCharacteristicsValues),
+            "Subsystem": enumeration("ImageSubsystem", uint16(), peImageSubsystemValues),
+            "Dll Characteristics": flags("ImageFileDllCharacteristics", uint16(), peImageFileDllCharacteristicsValues),
             "Size of Stack Reserve": uint64(),
             "Size of Stack Commit": uint64(),
             "Size of Heap Reserve": uint64(),
@@ -406,26 +441,26 @@ function init() {
             "Loader Flags": uint32(),
             "Number of Rva And Sizes": uint32(),
             "Data Directory": struct({
-                "Export": exportDataDirectory,
-                "Import": importDataDirectory64,
-                "Resource": imageDataDirectory,
-                "Exception": imageDataDirectory,
-                "Certificate": imageDataDirectory,
-                "Base Relocations": imageRelocDirectory,
-                "Debug Info": imageDebugDirectory,
-                "Architecture": imageDataDirectory,
-                "Global Pointer": imageDataDirectory,
-                "TLS": imageTlsDirectory64,
-                "Load Config": imageDataDirectory,
-                "Bound Import": imageDataDirectory,
-                "IAT": imageDataDirectory,
-                "Delay Import": imageDataDirectory,
-                "CLR Descriptor": imageDataDirectory,
-                "Reserved": imageDataDirectory
+                "Export": peExportDataDirectory,
+                "Import": peImportDataDirectory64,
+                "Resource": peImageDataDirectory,
+                "Exception": peImageDataDirectory,
+                "Certificate": peImageDataDirectory,
+                "Base Relocations": peImageRelocDirectory,
+                "Debug Info": peImageDebugDirectory,
+                "Architecture": peImageDataDirectory,
+                "Global Pointer": peImageDataDirectory,
+                "TLS": peImageTlsDirectory64,
+                "Load Config": peImageDataDirectory,
+                "Bound Import": peImageDataDirectory,
+                "IAT": peImageDataDirectory,
+                "Delay Import": peImageDataDirectory,
+                "CLR Descriptor": peImageDataDirectory,
+                "Reserved": peImageDataDirectory
             })
         }, "Optional Header PE32+"),
     ], {});
-    var sectionHeader = struct({
+    var peSectionHeader = struct({
         "Name": string("ascii").set({ maxByteCount: 8, terminatedBy: -1 }),
         "Physical Address Or VirtualSize": uint32(),
         "Virtual Address": uint32(),
@@ -435,14 +470,21 @@ function init() {
         "Pointer To Line Numbers": uint32(),
         "Number of Relocations": uint16(),
         "Number of Line Numbers": uint16(),
-        "Characteristics": flags("SectionCharacteristics", uint32(), imageSectionCharacteristicsValues)
+        "Characteristics": flags("SectionCharacteristics", uint32(), peImageSectionCharacteristicsValues)
     });
-    var ntHeader = struct({
-        "Signature": array(uint8(), 4),
-        "Image File Header": imageFileHeader,
-        "Optional Header": optionalHeader,
-        "Sections": array(sectionHeader, function () { return this.parent["Image File Header"]["Number of Sections"].value; })
-    });
+    var newHeader = taggedUnion({
+        "Signature": enumeration("NewHeaderSignature", uint16(), newHeaderSignatureKinds)
+    }, [
+        alternative(function () { return this.Signature.value == newHeaderSignatureKinds["NE"]; }, {
+            "Image File Header": neImageFileHeader
+        }),
+        alternative(function () { return this.Signature.value == newHeaderSignatureKinds["PE"]; }, {
+            "SignatureExt": uint16(),
+            "Image File Header": peImageFileHeader,
+            "Optional Header": peOptionalHeader,
+            "Sections": array(peSectionHeader, function () { return this.parent["Image File Header"]["Number of Sections"].value; })
+        }),
+    ], {});
     var dosHeader = struct({
         "Signature": array(uint8(), 2),
         "Last Page Bytes": uint16(),
@@ -462,7 +504,7 @@ function init() {
         "OEM ID": uint16(),
         "OEM Info": uint16(),
         "Reserved (2)": array(uint16(), 10),
-        "New Header Offset": pointer(uint32(), ntHeader)
+        "New Header Offset": pointer(uint32(), newHeader)
     });
     var pe32 = struct({
         "Dos Header": dosHeader
